@@ -35,9 +35,28 @@ impl<T> MyVec<T> {
                 self.len += 1;
             }
         }else {
+            let new_cap = self.capacity.checked_mul(2).expect("capacity wrapped");
+            let align = std::mem::align_of::<T>();
+            let size = std::mem::size_of::<T>() * self.capacity;
+            size.checked_add(size % align).expect("Allocate failed");
+            let ptr = unsafe {
+              let layout = alloc::Layout::from_size_align_unchecked(
+                size, 
+                align,
+                );  
+                let  new_size = std::mem::size_of::<T>() * new_cap;
+                
             
-        }
-        // todo!(deal appednd memory)
+               let ptr =  alloc::realloc(self.ptr.as_ptr() as *mut u8, layout, new_size);
+               let ptr = NonNull::new( ptr as *mut T).expect("msg");
+               ptr.as_ptr().add(self.len).write(item);
+               ptr
+        };
+        self.ptr = ptr;
+        self.capacity = new_cap;
+        self.len += 1;
+        
+    }
     }
 
     pub fn capacity(&self) -> usize{
@@ -59,10 +78,10 @@ mod tests {
         vec.push(5usize);
         vec.push(5);
         vec.push(5);
-        // vec.push(5);
-        // vec.push(5);
+        vec.push(5);
+        vec.push(5);
 
-        assert_eq!(vec.capacity(),4);
-        assert_eq!(vec.len(),1);
+        assert_eq!(vec.capacity(),8);
+        assert_eq!(vec.len(),5);
     }
 }
